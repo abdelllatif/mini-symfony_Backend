@@ -2,10 +2,9 @@
 
 namespace App\User\Repository;
 
-use App\User\Entity\User;
 use App\User\Entity\OAuthProvider;
+use App\User\Entity\User;
 use App\User\Repository\Interface\UserRepositoryInterface;
-use App\User\DTO\OAuthUserDataDTO;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -19,26 +18,63 @@ class UserRepository extends ServiceEntityRepository implements UserRepositoryIn
         parent::__construct($registry, User::class);
     }
 
-    public function findById(int $id): ?User
+    public function find(int $id): ?User
     {
-        return $this->find($id);
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.oauthProvider', 'op')
+            ->addSelect('op')
+            ->where('u.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
-    public function findByEmail(string $email): ?User
+    public function findOneBy(array $criteria): ?User
     {
-        return $this->findOneBy(['email' => $email]);
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.oauthProvider', 'op')
+            ->addSelect('op')
+            ->where($this->buildWhereClause($criteria))
+            ->setParameters($criteria)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
-    public function findByOAuthProvider(string $provider, string $providerId): ?User
+    public function findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null): array
     {
         $qb = $this->createQueryBuilder('u')
-            ->innerJoin('u.oauthProvider', 'op')
-            ->where('op.name = :provider')
-            ->andWhere('op.providerId = :providerId')
-            ->setParameter('provider', $provider)
-            ->setParameter('providerId', $providerId);
+            ->leftJoin('u.oauthProvider', 'op')
+            ->addSelect('op');
 
-        return $qb->getQuery()->getOneOrNullResult();
+        if (!empty($criteria)) {
+            $qb->where($this->buildWhereClause($criteria))
+               ->setParameters($criteria);
+        }
+
+        if ($orderBy) {
+            foreach ($orderBy as $field => $direction) {
+                $qb->addOrderBy('u.' . $field, $direction);
+            }
+        }
+
+        if ($limit) {
+            $qb->setMaxResults($limit);
+        }
+
+        if ($offset) {
+            $qb->setFirstResult($offset);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findAll(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.oauthProvider', 'op')
+            ->addSelect('op')
+            ->getQuery()
+            ->getResult();
     }
 
     public function save(User $user): void
@@ -47,47 +83,48 @@ class UserRepository extends ServiceEntityRepository implements UserRepositoryIn
         $this->getEntityManager()->flush();
     }
 
-    public function delete(User $user): void
+    public function remove(User $user): void
     {
         $this->getEntityManager()->remove($user);
         $this->getEntityManager()->flush();
     }
 
-    public function createFromOAuth(OAuthUserDataDTO $oauthData): User
+    public function findByEmail(string $email): ?User
     {
-        $user = new User();
-        $user->setEmail($oauthData->getEmail());
-        $user->setAvatar($oauthData->getAvatar());
-        $user->setVerified($oauthData->isVerified());
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.oauthProvider', 'op')
+            ->addSelect('op')
+            ->where('u.email = :email')
+            ->setParameter('email', $email)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 
-        $oauthProvider = new OAuthProvider($user);
-        $oauthProvider->setName($oauthData->getProvider());
-        $oauthProvider->setProviderId($oauthData->getProviderId());
+    public function findByOAuthProvider(string $provider, string $providerId): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->innerJoin('u.oauthProvider', 'op')
+            ->addSelect('op')
+            ->where('op.name = :provider')
+            ->andWhere('op.providerId = :providerId')
+            ->setParameter('provider', $provider)
+            ->setParameter('providerId', $providerId)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 
-        $user->setOauthProvider($oauthProvider);
-
+    public function create(User $user): User
+    {
         $this->save($user);
-
         return $user;
     }
 
-    public function updateFromOAuth(User $user, OAuthUserDataDTO $oauthData): User
+    private function buildWhereClause(array $criteria): string
     {
-        $user->setAvatar($oauthData->getAvatar());
-        $user->setVerified($oauthData->isVerified());
-
-        $oauthProvider = $user->getOauthProvider();
-        if ($oauthProvider) {
-            $oauthProvider->setProviderId($oauthData->getProviderId());
-        } else {
-            $oauthProvider = new OAuthProvider($user);
-            $oauthProvider->setName($oauthData->getProvider());
-            $oauthProvider->setProviderId($oauthData->getProviderId());
-            $user->setOauthProvider($oauthProvider);
+        $clauses = [];
+        foreach (array_keys($criteria) as $field) {
+            $clauses[] = "u.$field = :$field";
         }
-
-        $this->save($user);
-
-        return $user;
+        return implode(' AND ', $clauses);
     }
 }

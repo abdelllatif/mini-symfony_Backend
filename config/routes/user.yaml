@@ -1,5 +1,0 @@
-# User Management Routes
-user_routes:
-    resource: "../src/User/Controller/UserController.php"
-    type: annotation
-    prefix: /api/users

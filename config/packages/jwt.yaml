@@ -1,7 +1,0 @@
-# JWT Configuration
-jwt:
-    secret_key: '%env(resolve:JWT_SECRET_KEY)%'
-    token_lifetime: 3600        # 1 hour
-    refresh_token_lifetime: 2592000  # 30 days
-    issuer: 'music-platform'
-    audience: 'music-platform-client'

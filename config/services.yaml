@@ -7,9 +7,6 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    jwt.secret_key: '%env(resolve:JWT_SECRET_KEY)%'
-    jwt.token_lifetime: '%env(int:JWT_TOKEN_LIFETIME:3600)%'
-    jwt.refresh_token_lifetime: '%env(int:JWT_REFRESH_TOKEN_LIFETIME:2592000)%'
 
 services:
     # default configuration for services in *this* file
@@ -21,36 +18,6 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
-        exclude:
-            - '../src/DependencyInjection/'
-            - '../src/Entity/'
-            - '../src/Kernel.php'
-
-    # User Module Services
-    App\User\Service\Interface\UserServiceInterface:
-        class: App\User\Service\Impl\UserService
-
-    App\User\Service\Interface\JWTTokenServiceInterface:
-        class: App\User\Service\Impl\JWTTokenService
-        arguments:
-            $secretKey: '%jwt.secret_key%'
-            $tokenLifetime: '%jwt.token_lifetime%'
-            $refreshTokenLifetime: '%jwt.refresh_token_lifetime%'
-
-    App\User\Service\Interface\OAuthTokenServiceInterface:
-        class: App\User\Service\Impl\OAuthTokenService
-
-    App\User\Mapper\UserMapperInterface:
-        class: App\User\Mapper\UserMapper
-
-    App\User\Mapper\OAuthMapperInterface:
-        class: App\User\Mapper\OAuthMapper
-
-    App\User\Repository\Interface\UserRepositoryInterface:
-        class: App\User\Repository\UserRepository
-
-    App\User\Repository\Interface\OAuthProviderRepositoryInterface:
-        class: App\User\Repository\OAuthProviderRepository
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

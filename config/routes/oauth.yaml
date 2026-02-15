@@ -1,5 +1,0 @@
-# OAuth Authentication Routes
-oauth_auth:
-    resource: "../src/User/Controller/OAuthController.php"
-    type: annotation
-    prefix: /api/auth

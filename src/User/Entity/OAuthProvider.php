@@ -2,43 +2,26 @@
 
 namespace App\User\Entity;
 
-use App\User\Repository\OAuthProviderRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: OAuthProviderRepository::class)]
-#[ORM\Table(name: 'oauth_provider')]
-#[ORM\HasLifecycleCallbacks]
+#[ORM\Entity]
+#[ORM\Table(name: 'oauth_providers')]
 class OAuthProvider
 {
-    public const GOOGLE = 'google';
-    public const FACEBOOK = 'facebook';
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(type: 'string', length: 50)]
     private ?string $name = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'string', length: 255)]
     private ?string $providerId = null;
 
-    #[ORM\OneToOne(inversedBy: 'oauthProvider', targetEntity: User::class, cascade: ['persist'])]
+    #[ORM\OneToOne(targetEntity: User::class, inversedBy: 'oauthProvider')]
     #[ORM\JoinColumn(nullable: false)]
-    private User $user;
-
-    #[ORM\Column(type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
-
-    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    private ?\DateTimeImmutable $updatedAt = null;
-
-    public function __construct(User $user)
-    {
-        $this->user = $user;
-        $this->createdAt = new \DateTimeImmutable();
-    }
+    private ?User $user = null;
 
     public function getId(): ?int
     {
@@ -50,12 +33,8 @@ class OAuthProvider
         return $this->name;
     }
 
-    public function setName(string $name): static
+    public function setName(string $name): self
     {
-        if (!in_array($name, [self::GOOGLE, self::FACEBOOK])) {
-            throw new \InvalidArgumentException('Invalid OAuth provider. Must be google or facebook.');
-        }
-
         $this->name = $name;
 
         return $this;
@@ -66,57 +45,22 @@ class OAuthProvider
         return $this->providerId;
     }
 
-    public function setProviderId(string $providerId): static
+    public function setProviderId(string $providerId): self
     {
         $this->providerId = $providerId;
 
         return $this;
     }
 
-    public function getUser(): User
+    public function getUser(): ?User
     {
         return $this->user;
     }
 
-    public function setUser(User $user): static
+    public function setUser(User $user): self
     {
         $this->user = $user;
 
         return $this;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeImmutable
-    {
-        return $this->updatedAt;
-    }
-
-    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
-    {
-        $this->updatedAt = $updatedAt;
-
-        return $this;
-    }
-
-    #[ORM\PreUpdate]
-    public function setUpdatedAtValue(): void
-    {
-        $this->updatedAt = new \DateTimeImmutable();
-    }
-
-    public static function getValidProviders(): array
-    {
-        return [self::GOOGLE, self::FACEBOOK];
     }
 }
